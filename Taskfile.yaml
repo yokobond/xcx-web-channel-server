@@ -1,0 +1,11 @@
+version: "3"
+tasks:
+  build:
+    cmds:
+      - go build -o './dist/web-channel-server' ./cmd/web-channel-server
+  build-linux:
+    env:
+      GOOS: linux
+      GOARCH: amd64
+    cmds:
+      - go build -o './dist/web-channel-server-linux-amd64' ./cmd/web-channel-server

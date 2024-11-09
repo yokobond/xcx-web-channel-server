@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Pub/Sub Client</title>
+</head>
+<body>
+    <div>
+        <h3>Connection Status: <span id="status">Disconnected</span></h3>
+        
+        <div>
+            <h4>Subscribe</h4>
+            <input type="text" id="subTopic" placeholder="Topic name">
+            <button onclick="subscribe()">Subscribe</button>
+        </div>
+
+        <div>
+            <h4>Publish</h4>
+            <input type="text" id="pubTopic" placeholder="Topic name">
+            <input type="text" id="message" placeholder="Message">
+            <input type="number" id="repeatInterval" placeholder="Repeat Interval [ms]" min="100">
+            <button onclick="publish()">Publish</button>
+            <button id="repeatButton" onclick="toggleRepeat()">Repeat Sending</button>
+        </div>
+
+        <div>
+            <h4>Messages</h4>
+            <pre id="messages"></pre>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        const messagesDiv = document.getElementById('messages');
+        const statusSpan = document.getElementById('status');
+
+        let topic = null;
+        let repeatInterval = null;
+
+        function connect() {
+            ws = new WebSocket('wss://s1.yengawa.com/ws');
+
+            ws.onopen = () => {
+                statusSpan.textContent = 'Connected';
+                statusSpan.style.color = 'green';
+                if (topic) {
+                    subscribe();
+                }
+                log('Connected to server');
+            };
+
+            ws.onclose = () => {
+                statusSpan.textContent = 'Disconnected';
+                statusSpan.style.color = 'red';
+                log('Disconnected from server');
+                // Reconnect after 5 seconds
+                setTimeout(connect, 5000);
+            };
+
+            ws.onerror = (error) => {
+                log('WebSocket error: ' + error);
+            };
+
+            ws.onmessage = (event) => {
+                log('Received: ' + event.data);
+            };
+        }
+
+        function subscribe() {
+            const subTopic = document.getElementById('subTopic').value;
+            if (!subTopic) return;
+            
+            const message = JSON.stringify({
+                action: 'subscribe',
+                topic: subTopic
+            });
+            ws.send(message);
+            topic = subTopic;
+            log(`Subscribed to topic: ${subTopic}`);
+        }
+
+        function publish() {
+            const message = document.getElementById('message').value;
+            if (!topic || !message) return;
+
+            const payload = JSON.stringify({
+                action: 'publish',
+                topic: topic,
+                message: message
+            });
+            ws.send(payload);
+            log(`Published to ${topic}: ${message}`);
+        }
+
+        function toggleRepeat() {
+            const repeatButton = document.getElementById('repeatButton');
+            const messageInput = document.getElementById('message');
+            const intervalInput = document.getElementById('repeatInterval');
+            if (repeatInterval) {
+                clearInterval(repeatInterval);
+                repeatInterval = null;
+                repeatButton.textContent = 'Repeat Sending';
+                log('Stopped repeating messages');
+            } else {
+                if (!topic || !messageInput.value) return;
+
+                let interval = parseInt(intervalInput.value);
+                if (isNaN(interval) || interval < 0) {
+                    interval = 0; // Default to 0 ms if invalid
+                }
+
+                repeatInterval = setInterval(publish, interval);
+                repeatButton.textContent = 'Stop Repeating';
+                log(`Started repeating messages every ${interval} ms`);
+            }
+        }
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            messagesDiv.textContent = `[${timestamp}] ${message}\n` + messagesDiv.textContent;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Connect when page loads
+        connect();
+    </script>
+</body>
+</html>
