@@ -112,19 +112,16 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	go func() {
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				client.mu.Lock()
-				if client.closed {
-					client.mu.Unlock()
-					return
-				}
-				err := client.conn.WriteMessage(websocket.PingMessage, nil)
+		for range ticker.C {
+			client.mu.Lock()
+			if client.closed {
 				client.mu.Unlock()
-				if err != nil {
-					return
-				}
+				return
+			}
+			err := client.conn.WriteMessage(websocket.PingMessage, nil)
+			client.mu.Unlock()
+			if err != nil {
+				return
 			}
 		}
 	}()
