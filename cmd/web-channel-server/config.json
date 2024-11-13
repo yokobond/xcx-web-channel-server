@@ -1,0 +1,6 @@
+{
+    "certFile": "/Users/ky/mkcert/ymba.local+4.pem",
+    "keyFile": "/Users/ky/mkcert/ymba.local+4-key.pem",
+    "wssPort": 8443,
+    "wsPort": 8080
+}

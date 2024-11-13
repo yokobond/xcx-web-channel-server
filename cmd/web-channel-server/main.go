@@ -2,8 +2,11 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -128,6 +131,28 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	enableWSS := flag.Bool("wss", false, "Enable secure WebSocket (WSS)")
+	configFile := flag.String("config", "config.json", "Path to configuration file")
+	flag.Parse()
+
+	config := &Config{
+		WSPort:  8080, // default values
+		WSSPort: 8443,
+	}
+
+	if *enableWSS {
+		loadedConfig, err := loadConfig(*configFile)
+		if err != nil {
+			if os.IsNotExist(err) {
+				log.Printf("Warning: Config file %s not found. WSS will not be enabled.", *configFile)
+				*enableWSS = false
+			} else {
+				log.Printf("Error loading config: %v. Using default ports (ws:%d)", err, config.WSPort)
+			}
+		} else {
+			config = loadedConfig
+		}
+	}
 
 	hub := newHub()
 	go hub.run()
@@ -136,8 +161,29 @@ func main() {
 		serveWs(hub, w, r)
 	})
 
-	log.Printf("Starting server on :8443")
-	err := http.ListenAndServe(":8443", nil)
+	if *enableWSS {
+		if config.CertFile == "" || config.KeyFile == "" {
+			log.Printf("Warning: Certificate or key file path not set in config. WSS will not be enabled.")
+		} else {
+			// Start WSS server in a goroutine
+			go func() {
+				log.Printf("Starting secure WebSocket server on wss://localhost:%d", config.WSSPort)
+				err := http.ListenAndServeTLS(
+					fmt.Sprintf(":%d", config.WSSPort),
+					config.CertFile,
+					config.KeyFile,
+					nil,
+				)
+				if err != nil {
+					log.Printf("Failed to start WSS server: %v", err)
+				}
+			}()
+		}
+	}
+
+	// Start regular WS server
+	log.Printf("Starting WebSocket server on ws://localhost:%d", config.WSPort)
+	err := http.ListenAndServe(fmt.Sprintf(":%d", config.WSPort), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
