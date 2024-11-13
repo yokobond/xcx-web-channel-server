@@ -1,4 +1,4 @@
-module xcx-web-channel-server
+module web-channel-server
 
 go 1.23.2
 
