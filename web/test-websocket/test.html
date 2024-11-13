@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WebSocket Pub/Sub Client</title>
+</head>
+
+<body>
+    <div>
+        test
+    </div>
+
+    <script>
+        const ws = new WebSocket('wss://s1.yengawa.com/ws');
+
+        ws.onopen = function () {
+            console.log('Connected to WebSocket');
+            ws.send('Hello Server!');
+        };
+
+        ws.onmessage = function (e) {
+            console.log('Received:', e.data);
+        };
+    </script>
+</body>
+
+</html>
