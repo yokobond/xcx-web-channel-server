@@ -9,6 +9,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const readLimit = 512 // Maximum message size allowed from client
+
 type Message struct {
 	Action  string `json:"action"`
 	Topic   string `json:"topic"`
@@ -40,7 +42,7 @@ func (c *Client) readPump() {
 		c.conn.Close()
 	}()
 
-	c.conn.SetReadLimit(512) // Set max message size
+	c.conn.SetReadLimit(readLimit)
 	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	c.conn.SetPongHandler(func(string) error {
 		c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
