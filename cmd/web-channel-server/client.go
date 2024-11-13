@@ -66,24 +66,22 @@ func (c *Client) readPump() {
 
 		switch msg.Action {
 		case "subscribe":
-			if msg.Topic != "" {
-				c.hub.subscribe(c, msg.Topic)
-				response := Message{
-					Action:  "subscribed",
-					Topic:   msg.Topic,
-					Message: "Successfully subscribed",
-				}
-				c.mu.Lock()
-				if !c.closed {
-					if data, err := json.Marshal(response); err == nil {
-						c.send <- data
-					}
-				}
-				c.mu.Unlock()
+			c.hub.subscribe(c, msg.Topic)
+			response := Message{
+				Action:  "subscribed",
+				Topic:   msg.Topic,
+				Message: "success",
 			}
+			c.mu.Lock()
+			if !c.closed {
+				if data, err := json.Marshal(response); err == nil {
+					c.send <- data
+				}
+			}
+			c.mu.Unlock()
 
 		case "publish":
-			if msg.Topic != "" && msg.Message != "" {
+			if msg.Message != "" {
 				c.hub.publish(msg.Topic, []byte(msg.Message))
 			}
 
