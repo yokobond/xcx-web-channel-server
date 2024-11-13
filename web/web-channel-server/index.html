@@ -37,7 +37,8 @@
         let repeatInterval = null;
 
         function connect() {
-            ws = new WebSocket('wss://s1.yengawa.com/ws');
+            ws = new WebSocket('wss://s1.yengawa.com/wc');
+            // ws = new WebSocket('wss://localhost:8443/wc');
 
             ws.onopen = () => {
                 statusSpan.textContent = 'Connected';
