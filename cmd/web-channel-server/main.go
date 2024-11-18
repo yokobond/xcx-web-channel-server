@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -22,13 +21,7 @@ type Hub struct {
 	sync.RWMutex
 }
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true // In production, check origin
-	},
-}
+var upgrader websocket.Upgrader
 
 func newHub() *Hub {
 	return &Hub{
@@ -132,23 +125,28 @@ func main() {
 	configFile := flag.String("config", "config.json", "Path to configuration file")
 	flag.Parse()
 
-	config := &Config{
-		WSPort:  8080, // default values
-		WSSPort: 8443,
+	config, err := loadConfig(*configFile)
+	if err != nil {
+		log.Printf("Error loading config file: %v. Using default configuration.", err)
 	}
 
-	if *enableWSS {
-		loadedConfig, err := loadConfig(*configFile)
-		if err != nil {
-			if os.IsNotExist(err) {
-				log.Printf("Warning: Config file %s not found. WSS will not be enabled.", *configFile)
-				*enableWSS = false
-			} else {
-				log.Printf("Error loading config: %v. Using default ports (ws:%d)", err, config.WSPort)
+	upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			// If AllowedOrigins is not set or empty, allow any origin
+			if len(config.AllowedOrigins) == 0 {
+				return true
 			}
-		} else {
-			config = loadedConfig
-		}
+			origin := r.Header.Get("Origin")
+			for _, allowedOrigin := range config.AllowedOrigins {
+				if origin == allowedOrigin {
+					return true
+				}
+			}
+			log.Printf("Connection rejected from origin: %s", origin)
+			return false
+		},
 	}
 
 	hub := newHub()
@@ -160,7 +158,7 @@ func main() {
 
 	if *enableWSS {
 		if config.CertFile == "" || config.KeyFile == "" {
-			log.Printf("Warning: Certificate or key file path not set in config. WSS will not be enabled.")
+			log.Printf("Certificate or key file path not set in config. WSS will not be enabled.")
 		} else {
 			// Start WSS server in a goroutine
 			go func() {
@@ -180,7 +178,7 @@ func main() {
 
 	// Start regular WS server
 	log.Printf("Starting WebSocket server on ws://localhost:%d", config.WSPort)
-	err := http.ListenAndServe(fmt.Sprintf(":%d", config.WSPort), nil)
+	err = http.ListenAndServe(fmt.Sprintf(":%d", config.WSPort), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}

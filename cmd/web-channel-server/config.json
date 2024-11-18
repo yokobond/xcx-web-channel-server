@@ -1,6 +1,9 @@
 {
-    "certFile": "/Users/ky/mkcert/ymba.local+4.pem",
-    "keyFile": "/Users/ky/mkcert/ymba.local+4-key.pem",
     "wssPort": 8443,
-    "wsPort": 8080
+    "wsPort": 8080,
+    "allowedOrigins": [
+        "https://xcratch.github.io",
+        "https://xcratch.699.jp/",
+        "https://stretch3.github.io"
+    ]
 }
